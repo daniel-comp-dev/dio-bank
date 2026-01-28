@@ -1,59 +1,45 @@
-"""
-
-========================
-
-Exemplos introdutórios
-
-========================
-
-from flask import Flask
-from flask import request
-
-app = Flask(__name__)
-
-
-@app.route("/")
-def index():
-    return "Index Page"
-
-
-@app.route("/hello")
-def hello():
-    return "Hello, World"
-
-
-@app.route("/user/<username>")
-def show_user_profile(username):
-    # show the user profile for that user
-    return f"User {username}"
-
-
-@app.route("/post/<int:post_id>")
-def show_post(post_id):
-    # show the post with the given id, the id is an integer
-    return f"Post {post_id}"
-
-
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    if request.method == "POST":
-        return "Método POST"
-    else:
-        return "Método GET"
-
-
-@app.get('/login')
-def login_get():
-    return show_the_login_form()
-
-@app.post('/login')
-def login_post():
-    return do_the_login()
-"""
-
+from datetime import datetime
 import os
+import click
+from flask import Flask, current_app
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy.orm import DeclarativeBase
+import sqlalchemy as sa
+from sqlalchemy.orm import Mapped, mapped_column
 
-from flask import Flask
+
+class Base(DeclarativeBase):
+    pass
+
+
+db = SQLAlchemy(model_class=Base)
+
+
+class User(db.Model):
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    username: Mapped[str] = mapped_column(sa.String, unique=True, nullable=False)
+
+    def __repr__(self) -> str:
+        return f"User(id={self.id!r}, username={self.username!r}"
+
+
+class Post(db.Model):
+    id: Mapped[int] = mapped_column(sa.Integer, primary_key=True)
+    title: Mapped[str] = mapped_column(sa.String, nullable=False)
+    body: Mapped[str] = mapped_column(sa.String, nullable=False)
+    created: Mapped[datetime] = mapped_column(sa.DateTime, server_default=sa.func.now())
+    author_id: Mapped[int] = mapped_column(sa.ForeignKey("user.id"))
+
+    def __repr__(self) -> str:
+        return f"User(id={self.id!r}, title={self.username!r}, author_id={self.fullname!r})"
+
+
+@click.command("init-db")
+def init_db_command():
+    with current_app.app_context():
+        db.create_all()
+    """Clear the existing data and create new tables."""
+    click.echo("Initialized the database.")
 
 
 # Factorie
@@ -62,7 +48,7 @@ def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)  # Instancia arq. de conf.
     app.config.from_mapping(
         SECRET_KEY="dev",
-        DATABASE="diobank.sqlite",
+        SQLALCHEMY_DATABASE_URI="sqlite:///diobank.sqlite",
     )
 
     if test_config is None:
@@ -72,7 +58,7 @@ def create_app(test_config=None):
         # load the test config if passed in
         app.config.from_mapping(test_config)
 
-    from . import db
+    app.cli.add_command(init_db_command)
 
     db.init_app(app)
 
