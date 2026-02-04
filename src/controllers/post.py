@@ -30,7 +30,7 @@ def handle_user():
         _create_post()
         return {"message": "User created!"}, HTTPStatus.CREATED
     else:
-        return {"users": _list_users()}
+        pass
 
 
 # @app.route("/<int:user_id>")
