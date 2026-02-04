@@ -83,3 +83,11 @@ def update_user(user_id):
         "id": user.id,
         "username": user.username,
     }
+
+
+@app.route("/<int:user_id>", methods=["DELETE"])
+def remove_user(user_id):
+    user = db.get_or_404(User, user_id)
+    db.session.delete(user)
+    db.session.commit()
+    return "Delete", HTTPStatus.NO_CONTENT
